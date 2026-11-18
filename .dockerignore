@@ -1,0 +1,5 @@
+# Dockerfile consumes only a CI-built JAR; do not send sources or secrets in context.
+*
+!Dockerfile
+!target/
+!target/mcs-wallet-provider.jar

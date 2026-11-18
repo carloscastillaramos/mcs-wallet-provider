@@ -1,0 +1,8 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mcs-wallet-provider
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: mcs-wallet-provider}

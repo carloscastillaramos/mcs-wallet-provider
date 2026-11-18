@@ -1,0 +1,34 @@
+# Plantilla generica: dominio, ingress class y nombre de certificado vienen del ambiente.
+# El TLS Secret lo administra infraestructura MTC; no se genera en este proyecto.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcs-wallet-provider
+spec:
+  ingressClassName: ${INGRESS_CLASS}
+  tls:
+    - hosts:
+        - ${PUBLIC_HOST}
+      secretName: ${TLS_SECRET_NAME}
+  rules:
+    - host: ${PUBLIC_HOST}
+      http:
+        paths:
+          # Rutas permitidas: nunca publicar / completo ni APIs de trust/revoke.
+          # El registro de claves de diagnóstico y cualquier ruta dinámica
+          # requieren una política Gateway separada, revisada por Infra/Seguridad.
+          - path: /api/v1/enrollments/challenge
+            pathType: Exact
+            backend: {service: {name: mcs-wallet-provider, port: {number: 8080}}}
+          - path: /api/v1/enrollments/android
+            pathType: Exact
+            backend: {service: {name: mcs-wallet-provider, port: {number: 8080}}}
+          - path: /api/v1/enrollments/ios
+            pathType: Exact
+            backend: {service: {name: mcs-wallet-provider, port: {number: 8080}}}
+          - path: /api/v1/attestations/
+            pathType: Prefix
+            backend: {service: {name: mcs-wallet-provider, port: {number: 8080}}}
+          - path: /api/v1/.well-known/jwks.json
+            pathType: Exact
+            backend: {service: {name: mcs-wallet-provider, port: {number: 8080}}}

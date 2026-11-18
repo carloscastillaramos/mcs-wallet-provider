@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcs-wallet-provider
+  labels: {app: mcs-wallet-provider}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector:
+    matchLabels: {app: mcs-wallet-provider}
+  template:
+    metadata:
+      labels: {app: mcs-wallet-provider}
+      annotations:
+        # Match Mimoto/Verify pattern; confirm Istio webhook and mTLS mode in target namespace.
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: mcs-wallet-provider
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: wallet-provider
+          # REPLACE before deployment with approved ECR image@sha256 digest.
+          image: ${IMAGE_REF}
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          envFrom:
+            - configMapRef: {name: mcs-wallet-provider-settings}
+          env:
+            - name: DB_URL
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-db, key: jdbc-url}}
+            - name: DB_USER
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-db, key: username}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-db, key: password}}
+            - name: SIGNING_KEYSTORE_PASSWORD
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-signing, key: password}}
+            - name: SIGNING_KEYSTORE_PATH
+              value: /run/keys/signing/signing.p12
+            - name: ANDROID_ATTESTATION_ROOTS_PATH
+              value: /run/trust/android/roots.pem
+            - name: APPLE_APP_ATTEST_ROOT_PATH
+              value: /run/trust/apple/roots.pem
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /run/keys/google/credentials.json
+            # OAuth2 client_credentials for server-to-server key synchronization.
+            # Enable only AFTER RDS V2 migrations, workload identity, and mesh mTLS validation.
+            - name: WALLET_DIAG_SYNC_CLIENT_ID
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-diagnostics-sync, key: client-id, optional: true}}
+            - name: WALLET_DIAG_SYNC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: mcs-wallet-provider-diagnostics-sync, key: client-secret, optional: true}}
+            - name: PORT
+              value: "8080"
+            - name: JAVA_TOOL_OPTIONS
+              value: -Duser.timezone=UTC -Djava.io.tmpdir=/tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 200m, memory: 384Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          volumeMounts:
+            - {name: temp, mountPath: /tmp}
+            - {name: signing, mountPath: /run/keys/signing, readOnly: true}
+            - {name: google, mountPath: /run/keys/google, readOnly: true}
+            - {name: android-roots, mountPath: /run/trust/android, readOnly: true}
+            - {name: apple-roots, mountPath: /run/trust/apple, readOnly: true}
+            - {name: rds-ca, mountPath: /run/trust/rds, readOnly: true}
+          startupProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 15
+            failureThreshold: 3
+      volumes:
+        - {name: temp, emptyDir: {sizeLimit: 64Mi}}
+        - name: signing
+          secret:
+            secretName: mcs-wallet-provider-signing
+            items: [{key: signing.p12, path: signing.p12}]
+        - name: google
+          secret:
+            secretName: mcs-wallet-provider-google-adc
+            items: [{key: credentials.json, path: credentials.json}]
+        - name: android-roots
+          configMap: {name: mcs-wallet-provider-android-roots}
+        - name: apple-roots
+          configMap: {name: mcs-wallet-provider-apple-roots}
+        - name: rds-ca
+          configMap: {name: aws-rds-ca-bundle}

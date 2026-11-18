@@ -1,0 +1,107 @@
+spring:
+  application:
+    name: mcs-wallet-provider
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      minimum-idle: ${DB_POOL_MIN_IDLE:1}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:8}
+      connection-timeout: 5000
+      validation-timeout: 3000
+      max-lifetime: 1500000
+      data-source-properties:
+        tcpKeepAlive: true
+        connectTimeout: 5
+        socketTimeout: 20
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    create-schemas: false
+    default-schema: wallet_provider
+    schemas: wallet_provider
+    table: flyway_schema_history
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: wallet_provider
+        jdbc:
+          time_zone: UTC
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI}
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+  endpoints:
+    web:
+      exposure:
+        include: health
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    pe.gob.mtc.walletprovider: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  file:
+    name: ${LOG_FILE:}
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB
+wallet-provider:
+  signing:
+    key-store: ${SIGNING_KEYSTORE_PATH}
+    password: ${SIGNING_KEYSTORE_PASSWORD}
+    alias: ${SIGNING_KEY_ALIAS}
+    key-id: ${SIGNING_KEY_ID}
+    issuer: ${ATTESTATION_ISSUER}
+    wallet-client-id: ${WALLET_CLIENT_ID}
+  android:
+    package-name: ${ANDROID_PACKAGE}
+    certificate-sha256: ${ANDROID_CERT_SHA256}
+    cloud-project-number: ${PLAY_CLOUD_PROJECT_NUMBER}
+    key-attestation-roots: ${ANDROID_ATTESTATION_ROOTS_PATH}
+  ios:
+    app-id: ${IOS_APP_ID}
+    app-attest-root: ${APPLE_APP_ATTEST_ROOT_PATH}
+    production: ${IOS_APP_ATTEST_PRODUCTION:true}
+  diagnostics-sync:
+    # Enable only when the institutional client_credentials identity and mTLS are provisioned.
+    enabled: ${WALLET_DIAG_SYNC_ENABLED:false}
+    base-url: ${WALLET_DIAG_SYNC_BASE_URL:}
+    token-url: ${WALLET_DIAG_SYNC_TOKEN_URL:}
+    client-id: ${WALLET_DIAG_SYNC_CLIENT_ID:}
+    client-secret: ${WALLET_DIAG_SYNC_CLIENT_SECRET:}
+    allow-http-in-mesh: ${WALLET_DIAG_SYNC_ALLOW_HTTP_IN_MESH:false}
+  policy:
+    challenge-seconds: ${CHALLENGE_SECONDS:180}
+    attestation-seconds: ${ATTESTATION_SECONDS:300}
+    maximum-evidence-age-seconds: ${MAXIMUM_EVIDENCE_AGE_SECONDS:120}
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}

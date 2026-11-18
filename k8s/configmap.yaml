@@ -1,0 +1,23 @@
+# Plantilla generica: NO aplicar directamente, renderizar en CI/CD con envsubst.
+# No incluir contrasenas, tokens, certificados privados ni secretos aqui.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcs-wallet-provider-settings
+data:
+  # Migration Job se ejecuta por separado antes de levantar la API.
+  SPRING_FLYWAY_ENABLED: "false"
+  OIDC_ISSUER_URI: "${OIDC_ISSUER_URI}"
+  ATTESTATION_ISSUER: "${ATTESTATION_ISSUER}"
+  WALLET_CLIENT_ID: "${WALLET_CLIENT_ID}"
+  ANDROID_PACKAGE: "${ANDROID_PACKAGE}"
+  ANDROID_CERT_SHA256: "${ANDROID_CERT_SHA256}"
+  PLAY_CLOUD_PROJECT_NUMBER: "${PLAY_CLOUD_PROJECT_NUMBER}"
+  IOS_APP_ID: "${IOS_APP_ID}"
+  IOS_APP_ATTEST_PRODUCTION: "${IOS_APP_ATTEST_PRODUCTION}"
+  SIGNING_KEY_ID: "${SIGNING_KEY_ID}"
+  SIGNING_KEY_ALIAS: "${SIGNING_KEY_ALIAS}"
+  WALLET_DIAG_SYNC_ENABLED: "${WALLET_DIAG_SYNC_ENABLED}"
+  WALLET_DIAG_SYNC_BASE_URL: "${WALLET_DIAG_SYNC_BASE_URL}"
+  WALLET_DIAG_SYNC_TOKEN_URL: "${WALLET_DIAG_SYNC_TOKEN_URL}"
+  WALLET_DIAG_SYNC_ALLOW_HTTP_IN_MESH: "false"

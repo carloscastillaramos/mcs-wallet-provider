@@ -1,0 +1,21 @@
+# NON-APPLICABLE TEMPLATE: do not publish before domain/TLS review.
+# Restrict admin trust/revoke endpoints to private ClusterIP + workload auth.
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: mcs-wallet-provider-public
+spec:
+  hosts: [REPLACE_WITH_APPROVED_HTTPS_HOST]
+  gateways: [REPLACE_WITH_EXISTING_ISTIO_GATEWAY]
+  http:
+    - match:
+        - uri: {exact: /api/v1/enrollments/challenge}
+        - uri: {exact: /api/v1/enrollments/android}
+        - uri: {exact: /api/v1/enrollments/ios}
+        - uri: {regex: "^/api/v1/installations/[0-9a-fA-F-]{36}/diagnostics-keys$"}
+        - uri: {prefix: /api/v1/attestations/}
+        - uri: {exact: /api/v1/.well-known/jwks.json}
+      route:
+        - destination:
+            host: mcs-wallet-provider
+            port: {number: 8080}
