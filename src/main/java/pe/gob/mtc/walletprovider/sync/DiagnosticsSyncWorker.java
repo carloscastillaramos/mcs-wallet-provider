@@ -55,7 +55,7 @@ public class DiagnosticsSyncWorker {
         // OAuth2 client_credentials. Client secret never travels to Diagnostics.
         var form=new LinkedMultiValueMap<String,String>();
         form.add("grant_type","client_credentials");
-        form.add("scope","diagnostics.device.sync");
+        form.add("scope",required(props.scope(),"scope"));
         TokenResponse result=client.post().uri(props.tokenUrl())
                 .headers(h->h.setBasicAuth(props.clientId(),props.clientSecret()))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
