@@ -53,22 +53,11 @@ class PostgresJpaRuntimeTest {
 
     @DynamicPropertySource
     static void localPostgres(DynamicPropertyRegistry registry) {
-        String url = required("WALLET_PG_JDBC_URL");
-        if (!(url.startsWith("jdbc:postgresql://127.0.0.1:55432/")
-                || url.startsWith("jdbc:postgresql://localhost:55432/"))) {
-            throw new IllegalStateException("Prueba permitida solo sobre PostgreSQL local:55432");
-        }
-        registry.add("spring.datasource.url", () -> url);
-        registry.add("spring.datasource.username", () -> required("WALLET_PG_USER"));
-        registry.add("spring.datasource.password", () -> required("WALLET_PG_PASSWORD"));
-    }
-
-    private static String required(String key) {
-        String value = System.getenv(key);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Variable obligatoria de laboratorio: " + key);
-        }
-        return value;
+        // Registro de DataSource solo DESPUÉS de una verificación de conexión de lectura.
+        LabPostgresGuard.Target target = LabPostgresGuard.verify();
+        registry.add("spring.datasource.url", target::url);
+        registry.add("spring.datasource.username", target::user);
+        registry.add("spring.datasource.password", target::password);
     }
 
     @Autowired private ChallengeRepository challenges;

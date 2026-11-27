@@ -1,0 +1,278 @@
+{
+  "schema": "mtc-qa-catalog/1",
+  "version": "03.23",
+  "cases": [
+    {
+      "id": "QA-ENV-01",
+      "group": "INFRA",
+      "title": "Endpoints de QA: DNS, TLS confiable, ingress privado y endpoints internos no públicos",
+      "procedure": "Registrar diagnóstico de certificados y rutas autorizadas; no reutilizar dominios productivos",
+      "expected": "HTTPS válido y rutas M2M privadas; cero exposición pública de endpoints internos",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ENV-02",
+      "group": "INFRA",
+      "title": "Cliente Cognito Certify segregado de MiMoto",
+      "procedure": "Solicitar y validar configuración del cliente QA de Certify, Resource Server, issuer, audiencia y permisos",
+      "expected": "Solo el cliente Certify posee mtc-wallet-provider/wallet.issuance.certify",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ENV-03",
+      "group": "DATOS",
+      "title": "Migraciones PostgreSQL Provider V1–V5 en QA",
+      "procedure": "Comprobar Flyway/schema wallet_provider con DBA en ambiente QA autorizado",
+      "expected": "V1–V5 aplicadas sin cambios destructivos; réplica y restauración aprobadas",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ENV-04",
+      "group": "DESPLIEGUE",
+      "title": "Versiones y flags de componentes QA registradas",
+      "procedure": "Anotar commit/version de Wallet, MiMoto, Provider y Certify y secuencia aprobada de flags",
+      "expected": "Todos apuntan a la misma línea de integración; los controles se habilitan solo en QA",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ENV-05",
+      "group": "AUDITORIA",
+      "title": "Auditoría minimizada y correlación transaccional",
+      "procedure": "Verificar registros de sesiones, emisión, denegaciones y trazabilidad de QA",
+      "expected": "No registrar DNI en claro, material biométrico, secretos, JWT, claves privadas ni c_nonce en claro",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-01",
+      "group": "ID_PERU",
+      "title": "Primer inicio Android: ID Perú exitoso y DNI acreditado",
+      "procedure": "Con instalación limpia y datos de prueba autorizados, acreditar vía ID Perú",
+      "expected": "Provider vincula DNI acreditado a instalación activa y Wallet desbloquea solo tras confirmación backend",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-02",
+      "group": "ID_PERU",
+      "title": "Inicio posterior con instalación acreditada",
+      "procedure": "Cerrar y abrir Wallet sin reinstalar, con vínculo vigente",
+      "expected": "Acceso sin nueva biometría y consulta vigente en Provider",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-03",
+      "group": "ID_PERU",
+      "title": "Reinstalación exige nueva acreditación",
+      "procedure": "Reinstalar app en dispositivo QA conservando estado backend previo",
+      "expected": "Instalación nueva no hereda acreditación de clave/instalación anterior",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-04",
+      "group": "ID_PERU",
+      "title": "Biometría cancelada o fallida",
+      "procedure": "Cancelar o fallar ID Perú durante sesión de acreditación",
+      "expected": "No se acredita y no se entrega acceso a Wallet; no se reutiliza evidencia",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-05",
+      "group": "ID_PERU",
+      "title": "Acreditación: identidad incoherente",
+      "procedure": "Usar credencial de prueba cuyo DNI no corresponde al solicitado",
+      "expected": "No se crea vínculo y se genera evento de rechazo sin divulgar DNI",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-06",
+      "group": "ID_PERU",
+      "title": "Sesiones simultáneas y reintento",
+      "procedure": "Abrir solicitudes de acreditación solapadas y reintentar token vencido",
+      "expected": "Sin consumo duplicado de evidencia ni autorización por sesión ajena",
+      "mandatory": true
+    },
+    {
+      "id": "QA-ID-07",
+      "group": "ID_PERU",
+      "title": "ID Perú no disponible / respuesta no confiable",
+      "procedure": "Simular indisponibilidad o respuesta inválida en QA controlado",
+      "expected": "Fallo cerrado y posibilidad de reintento seguro; sin acceso provisional",
+      "mandatory": true
+    },
+    {
+      "id": "QA-KEY-01",
+      "group": "ATESTACION",
+      "title": "Android hardware Key Attestation y PoP",
+      "procedure": "Ejecutar la solicitud real de atestación con clave hardware y firmas válidas",
+      "expected": "Provider valida cadena X.509, PoP de instalación y de clave de credencial",
+      "mandatory": true
+    },
+    {
+      "id": "QA-KEY-02",
+      "group": "ATESTACION",
+      "title": "Atestación hardware ausente o no confiable",
+      "procedure": "Manipular únicamente un escenario de prueba no productivo con atestación inválida",
+      "expected": "Provider rechaza sin crear binding de clave",
+      "mandatory": true
+    },
+    {
+      "id": "QA-KEY-03",
+      "group": "ATESTACION",
+      "title": "Manipulación de clave pública o prueba",
+      "procedure": "Usar una clave distinta a la atestada y firma no correspondiente",
+      "expected": "Provider rechaza el binding y no emite atestación válida",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-01",
+      "group": "EMISION",
+      "title": "Emisión mDL real con DNI por credencial",
+      "procedure": "Con titular acreditado, emitir una mDL de prueba por flujo autorizado",
+      "expected": "DNI solicitado por credencial; nonce/huella coinciden en Provider y Certify; emisión correcta",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-02",
+      "group": "EMISION",
+      "title": "Emisión SD-JWT real con DNI por credencial",
+      "procedure": "Con titular acreditado, emitir una SD-JWT de prueba",
+      "expected": "DNI solicitado por credencial; proof válido y Provider autoriza antes de generar",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-03",
+      "group": "EMISION",
+      "title": "Coexistencia de mDL y SD-JWT en misma Wallet",
+      "procedure": "Solicitar y conservar ambas credenciales en instalación acreditada",
+      "expected": "No hay pérdida ni incompatibilidad de una representación por la otra",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-04",
+      "group": "EMISION",
+      "title": "Certify rechaza nonce diferente al registrado",
+      "procedure": "Forzar c_nonce distinto en proof de QA tras atestación de clave",
+      "expected": "Provider/Certify rechazan emisión antes de la generación",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-05",
+      "group": "EMISION",
+      "title": "Certify rechaza huella de clave diferente",
+      "procedure": "Solicitar credencial firmando proof con clave pública no vinculada",
+      "expected": "No autoriza ni genera credencial",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-06",
+      "group": "EMISION",
+      "title": "Proof sin Key Attestation válida",
+      "procedure": "Omitir o invalidar key_attestation del proof en un cliente QA de prueba",
+      "expected": "No autoriza emisión aun si el token OAuth es válido",
+      "mandatory": true
+    },
+    {
+      "id": "QA-EMI-07",
+      "group": "EMISION",
+      "title": "Titular sin acreditar intenta emisión",
+      "procedure": "Usar instalación técnica sin vinculación de titular activa",
+      "expected": "No emite credenciales; la pantalla no es la única protección",
+      "mandatory": true
+    },
+    {
+      "id": "QA-REV-01",
+      "group": "REVOCACION",
+      "title": "Revocación de instalación antes de emitir",
+      "procedure": "Revocar instalación de QA y repetir solicitud con misma clave ya atestada",
+      "expected": "Provider deniega online, Certify no genera credencial nueva",
+      "mandatory": true
+    },
+    {
+      "id": "QA-REV-02",
+      "group": "REVOCACION",
+      "title": "Titular bloqueado",
+      "procedure": "Bloquear identidad de QA conforme flujo institucional y consultar emisión",
+      "expected": "No autoriza emisión con instalación previamente acreditada",
+      "mandatory": true
+    },
+    {
+      "id": "QA-REV-03",
+      "group": "REVOCACION",
+      "title": "Binding de clave vencido",
+      "procedure": "Usar atestación de credencial cuyo periodo de validez ya expiró",
+      "expected": "Provider devuelve denegación sin prórroga implícita",
+      "mandatory": true
+    },
+    {
+      "id": "QA-RES-01",
+      "group": "RESILIENCIA",
+      "title": "Provider interno indisponible",
+      "procedure": "Simular caída QA controlada antes de consultar autorización Certify",
+      "expected": "Certify falla cerrado sin emisión de credencial",
+      "mandatory": true
+    },
+    {
+      "id": "QA-RES-02",
+      "group": "RESILIENCIA",
+      "title": "PostgreSQL Provider indisponible",
+      "procedure": "Ejecutar escenario de falla con infraestructura autorizada en QA",
+      "expected": "La consulta M2M no autoriza y Certify no genera credencial",
+      "mandatory": true
+    },
+    {
+      "id": "QA-RES-03",
+      "group": "RESILIENCIA",
+      "title": "Cognito: token expirado o firma inválida",
+      "procedure": "Usar JWT de prueba expirado/alterado contra endpoint interno QA",
+      "expected": "401/403 sin revelar datos de vínculo",
+      "mandatory": true
+    },
+    {
+      "id": "QA-RES-04",
+      "group": "RESILIENCIA",
+      "title": "Cliente MiMoto no accede a permiso exclusivo Certify",
+      "procedure": "Intentar llamada QA con token válido para MiMoto, sin scope de Certify",
+      "expected": "Provider deniega; separación de permisos efectiva",
+      "mandatory": true
+    },
+    {
+      "id": "QA-RES-05",
+      "group": "RESILIENCIA",
+      "title": "JWKS Cognito no disponible",
+      "procedure": "Forzar fallo controlado del resolvedor JWKS de QA",
+      "expected": "Provider falla cerrado; no se recurre a token sin validar",
+      "mandatory": true
+    },
+    {
+      "id": "QA-COMP-01",
+      "group": "COMPATIBILIDAD",
+      "title": "INJI Verify web sin regresión",
+      "procedure": "Verificar presencialmente o en QA credenciales emitidas por flujos soportados",
+      "expected": "Verificación web no exige enrolamiento de verificadores ni pierde funciones existentes",
+      "mandatory": true
+    },
+    {
+      "id": "QA-COMP-02",
+      "group": "COMPATIBILIDAD",
+      "title": "Continuidad de validación DNI por credencial",
+      "procedure": "Solicitar consecutivamente dos credenciales con inicio de Wallet ya acreditado",
+      "expected": "Cada emisión requiere el DNI según flujo vigente; no se usa la biometría inicial como sustituto",
+      "mandatory": true
+    },
+    {
+      "id": "QA-OPS-01",
+      "group": "OPERACION",
+      "title": "Rollback seguro y auditado solo QA",
+      "procedure": "Desactivar control Certify QA bajo cambio autorizado; evaluar restablecimiento",
+      "expected": "Sin intervención PRD; no borrado de tablas; rollback documentado y auditable",
+      "mandatory": true
+    },
+    {
+      "id": "QA-OPS-02",
+      "group": "OPERACION",
+      "title": "Verificación de aislamiento producción",
+      "procedure": "Inspeccionar por canal autorizado los cambios de configuración de QA",
+      "expected": "Ningún endpoint productivo ni flag PRD es alterado por homologación QA",
+      "mandatory": true
+    }
+  ]
+}

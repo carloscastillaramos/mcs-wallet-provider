@@ -5,6 +5,8 @@ import org.mockito.ArgumentCaptor;
 import pe.gob.mtc.walletprovider.api.ApiModels.ChallengeRequest;
 import pe.gob.mtc.walletprovider.config.ProviderProperties;
 import pe.gob.mtc.walletprovider.domain.*;
+import pe.gob.mtc.walletprovider.identity.HolderCredentialAttestationPolicy;
+import pe.gob.mtc.walletprovider.identity.CredentialKeyBindingRegistry;
 import pe.gob.mtc.walletprovider.platform.*;
 import pe.gob.mtc.walletprovider.security.*;
 import java.time.OffsetDateTime;
@@ -19,7 +21,8 @@ class EnrollmentServiceTest {
             new ProviderProperties(null,null,null,new ProviderProperties.Policy(180,300,120)),
             mock(AndroidIntegrityVerifier.class),mock(AndroidKeyAttestationVerifier.class),mock(IosAppAttestVerifier.class),
             mock(ProofVerifier.class),mock(AttestationSigner.class),
-            mock(DiagnosticsKeyRepository.class),mock(pe.gob.mtc.walletprovider.sync.DiagnosticsOutbox.class));
+            mock(DiagnosticsKeyRepository.class),mock(pe.gob.mtc.walletprovider.sync.DiagnosticsOutbox.class),
+            mock(HolderCredentialAttestationPolicy.class),mock(CredentialKeyBindingRegistry.class), mock(org.springframework.jdbc.core.JdbcTemplate.class));
         var a=service.challenge(new ChallengeRequest("android"));
         var b=service.challenge(new ChallengeRequest("ANDROID"));
         assertNotEquals(a.nonce(),b.nonce());
@@ -34,7 +37,8 @@ class EnrollmentServiceTest {
             new ProviderProperties(null,null,null,new ProviderProperties.Policy(180,300,120)),
             mock(AndroidIntegrityVerifier.class),mock(AndroidKeyAttestationVerifier.class),mock(IosAppAttestVerifier.class),
             mock(ProofVerifier.class),mock(AttestationSigner.class),
-            mock(DiagnosticsKeyRepository.class),mock(pe.gob.mtc.walletprovider.sync.DiagnosticsOutbox.class));
+            mock(DiagnosticsKeyRepository.class),mock(pe.gob.mtc.walletprovider.sync.DiagnosticsOutbox.class),
+            mock(HolderCredentialAttestationPolicy.class),mock(CredentialKeyBindingRegistry.class), mock(org.springframework.jdbc.core.JdbcTemplate.class));
         assertThrows(IllegalArgumentException.class,()->service.challenge(new ChallengeRequest("WINDOWS")));
     }
 
@@ -52,7 +56,8 @@ class EnrollmentServiceTest {
         var service=new EnrollmentService(challenges,installations,audit,
             new ProviderProperties(null,null,null,new ProviderProperties.Policy(180,300,120)),
             mock(AndroidIntegrityVerifier.class),mock(AndroidKeyAttestationVerifier.class),
-            mock(IosAppAttestVerifier.class),mock(ProofVerifier.class),mock(AttestationSigner.class),keys,outbox);
+            mock(IosAppAttestVerifier.class),mock(ProofVerifier.class),mock(AttestationSigner.class),keys,outbox,
+            mock(HolderCredentialAttestationPolicy.class),mock(CredentialKeyBindingRegistry.class), mock(org.springframework.jdbc.core.JdbcTemplate.class));
         service.revoke(installation.id);
         assertEquals("REVOKED",installation.status);
         assertEquals("REVOKED",first.status);

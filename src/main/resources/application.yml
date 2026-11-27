@@ -72,6 +72,14 @@ logging:
       max-history: 7
       total-size-cap: 100MB
 wallet-provider:
+  verifier-m2m:
+    enabled: ${MTC_VERIFIER_M2M_ENABLED:false}
+    client-ids: ${MTC_VERIFIER_M2M_CLIENT_IDS:}
+  portal:
+    origins: ${MTC_PORTAL_ALLOWED_ORIGINS:}
+    # Inactivo hasta provisionar Cognito institucional; solo personal MTC.
+    enabled: ${MTC_PORTAL_ENABLED:false}
+    client-ids: ${MTC_PORTAL_COGNITO_CLIENT_IDS:}
   signing:
     key-store: ${SIGNING_KEYSTORE_PATH}
     password: ${SIGNING_KEYSTORE_PASSWORD}
@@ -97,6 +105,27 @@ wallet-provider:
     client-secret: ${WALLET_DIAG_SYNC_CLIENT_SECRET:}
     scope: ${WALLET_DIAG_SYNC_SCOPE:diagnostics.device.sync}
     allow-http-in-mesh: ${WALLET_DIAG_SYNC_ALLOW_HTTP_IN_MESH:false}
+  identity:
+    # OFF hasta integrar un adaptador M2M confiable para evidencia de RENIEC/MiMoto.
+    enabled: ${WALLET_IDENTITY_ENABLED:false}
+    hmac-key-b64: ${WALLET_IDENTITY_HMAC_KEY_B64:}
+    encryption-key-b64: ${WALLET_IDENTITY_ENCRYPTION_KEY_B64:}
+    key-version: ${WALLET_IDENTITY_KEY_VERSION:1}
+    # Verificador M2M firmado por MiMoto; SIN endpoints ni emisor habilitados aun.
+    mimoto-evidence-issuer: ${WALLET_IDENTITY_MIMOTO_EVIDENCE_ISSUER:}
+    mimoto-evidence-audience: ${WALLET_IDENTITY_MIMOTO_EVIDENCE_AUDIENCE:}
+    mimoto-evidence-signer-cert-path: ${WALLET_IDENTITY_MIMOTO_SIGNER_CERT_PATH:}
+    mimoto-m2m:
+      # OFF hasta contar con OAuth2 client_credentials Cognito QA y mTLS / mesh.
+      enabled: ${WALLET_IDENTITY_MIMOTO_M2M_ENABLED:false}
+      client-ids: ${WALLET_IDENTITY_MIMOTO_M2M_CLIENT_IDS:}
+    credential-binding:
+      # V5: vínculo de la clave de credencial con la instalación; OFF por defecto.
+      enabled: ${WALLET_IDENTITY_CREDENTIAL_BINDING_ENABLED:false}
+    certify-m2m:
+      # API de autorización exclusivamente para Certify, nunca para Wallet.
+      enabled: ${WALLET_IDENTITY_CERTIFY_M2M_ENABLED:false}
+      client-ids: ${WALLET_IDENTITY_CERTIFY_M2M_CLIENT_IDS:}
   policy:
     challenge-seconds: ${CHALLENGE_SECONDS:180}
     attestation-seconds: ${ATTESTATION_SECONDS:300}

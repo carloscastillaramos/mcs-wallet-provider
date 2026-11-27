@@ -17,17 +17,13 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Test optativo contra PostgreSQL real. No inicia la aplicacion ni emplea H2. */
 @EnabledIfEnvironmentVariable(named = "WALLET_PG_IT", matches = "true")
 class PostgresIntegrationTest {
-    private static String env(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) throw new IllegalStateException("Falta " + name);
-        return value;
-    }
-
     @Test
     void flywayRealPostgresqlAndAuditPartitions() throws Exception {
-        String url = env("WALLET_PG_JDBC_URL");
-        String user = env("WALLET_PG_USER");
-        String password = env("WALLET_PG_PASSWORD");
+        // Abortamos ANTES de Flyway, migraciones o INSERT/DELETE.
+        LabPostgresGuard.Target target = LabPostgresGuard.verify();
+        String url = target.url();
+        String user = target.user();
+        String password = target.password();
 
         Flyway flyway = Flyway.configure()
                 .dataSource(url, user, password)

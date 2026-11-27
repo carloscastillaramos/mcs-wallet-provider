@@ -1,10 +1,13 @@
 package pe.gob.mtc.walletprovider.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import pe.gob.mtc.walletprovider.api.ApiModels.*;
 import pe.gob.mtc.walletprovider.config.ProviderProperties;
 import pe.gob.mtc.walletprovider.domain.*;
+import pe.gob.mtc.walletprovider.identity.HolderCredentialAttestationPolicy;
+import pe.gob.mtc.walletprovider.identity.CredentialKeyBindingRegistry;
 import pe.gob.mtc.walletprovider.platform.*;
 import pe.gob.mtc.walletprovider.security.*;
 import pe.gob.mtc.walletprovider.sync.DiagnosticsOutbox;
@@ -26,15 +29,23 @@ public class EnrollmentService {
     private final AttestationSigner signer;
     private final DiagnosticsKeyRepository diagnosticsKeys;
     private final DiagnosticsOutbox diagnosticsOutbox;
+    private final HolderCredentialAttestationPolicy holderAttestationPolicy;
+    private final CredentialKeyBindingRegistry credentialKeyBindings;
+    private final JdbcTemplate jdbc;
     private final SecureRandom random=new SecureRandom();
 
     public EnrollmentService(ChallengeRepository challenges,InstallationRepository installations,AuditRepository audit,
                              ProviderProperties config,AndroidIntegrityVerifier play,AndroidKeyAttestationVerifier androidKeys,
                              IosAppAttestVerifier apple,ProofVerifier proof,AttestationSigner signer,
-                             DiagnosticsKeyRepository diagnosticsKeys,DiagnosticsOutbox diagnosticsOutbox) {
+                             DiagnosticsKeyRepository diagnosticsKeys,DiagnosticsOutbox diagnosticsOutbox,
+                             HolderCredentialAttestationPolicy holderAttestationPolicy,
+                             CredentialKeyBindingRegistry credentialKeyBindings, JdbcTemplate jdbc) {
         this.challenges=challenges;this.installations=installations;this.audit=audit;this.config=config;
         this.play=play;this.androidKeys=androidKeys;this.apple=apple;this.proof=proof;this.signer=signer;
         this.diagnosticsKeys=diagnosticsKeys;this.diagnosticsOutbox=diagnosticsOutbox;
+        this.holderAttestationPolicy=Objects.requireNonNull(holderAttestationPolicy);
+        this.credentialKeyBindings=Objects.requireNonNull(credentialKeyBindings);
+        this.jdbc=Objects.requireNonNull(jdbc);
     }
     @Transactional
     public ChallengeResponse challenge(ChallengeRequest req) {
@@ -81,7 +92,12 @@ public class EnrollmentService {
         return new TrustResponse(i.id,i.platform,i.status,i.assurance);
     }
     @Transactional
-    public void revoke(String id) {
+    public void revoke(String id) { revoke(id, "Revocación global MTC"); }
+
+    @Transactional
+    public void revoke(String id, String reason) {
+        if (reason == null || reason.isBlank() || reason.length() > 300)
+            throw new IllegalArgumentException("Revocation reason is required");
         Installation i=installations.lockById(id).orElseThrow(()->new NoSuchElementException("Installation unavailable"));
         if("REVOKED".equals(i.status)) return; // idempotent administrator operation
         i.status="REVOKED";i.updatedAt=OffsetDateTime.now(ZoneOffset.UTC);
@@ -91,6 +107,20 @@ public class EnrollmentService {
             key.revokedAt=OffsetDateTime.now(ZoneOffset.UTC);
             diagnosticsOutbox.enqueueRevoke(i.id,key.keyId,i.platform);
         }
+        // Same transaction: identity and institutional permissions must not remain ACTIVE.
+        jdbc.update("""
+            UPDATE wallet_provider.wp_verifier_installation
+            SET status='REVOKED', revoked_at=CURRENT_TIMESTAMP, reason=?, version=version+1
+            WHERE installation_id=? AND status='ACTIVE'
+            """, reason, i.id);
+        jdbc.update("""
+            UPDATE wallet_provider.wp_installation_holder SET status='BLOCKED'
+            WHERE installation_id=? AND status='ACTIVE'
+            """, i.id);
+        jdbc.update("""
+            UPDATE wallet_provider.wp_identity_session SET status='CANCELLED'
+            WHERE installation_id=? AND status='PENDING'
+            """, i.id);
         audit.save(new Audit(i.id,"REVOKE","ACCEPTED",null));
     }
     @Transactional
@@ -132,7 +162,13 @@ public class EnrollmentService {
         proof.verify(installationKey,signedMessage,req.installationProofSignature());
         proof.verify(credentialKey,signedMessage,req.credentialProofSignature());
         String assurance=androidKeys.verify(req.credentialKeyAttestationChain(),challenge.nonce,credentialKey);
+        // PoP and hardware checks have succeeded; evaluate identity in Provider before signing.
+        holderAttestationPolicy.requireAccredited(installation);
         String token=signer.keyAttestation(credentialKey,config.policy().attestationSeconds(),req.issuerNonce());
+        // Se registra despues de comprobar ambas PoP, atestacion hardware,
+        // estado acreditado y firma. Si la BD falla, la transaccion se revierte.
+        credentialKeyBindings.recordValidated(installation.id,credentialKey,req.issuerNonce(),
+            Instant.now().plusSeconds(config.policy().attestationSeconds()));
         audit.save(new Audit(installation.id,"CREDENTIAL_KEY_ATTESTATION","ISSUED",assurance));
         return new AttestationResponse(token,Instant.now().plusSeconds(config.policy().attestationSeconds()).toString());
     }
@@ -149,6 +185,8 @@ public class EnrollmentService {
         PublicKey installationKey;
         try { installationKey=proof.decodePem(i.publicKey); }
         catch(GeneralSecurityException e) { throw new SecurityException("Stored installation key invalid",e); }
+        // The legacy wallet attestation must remain usable for technical enrollment.
+        if ("key_attestation".equals(purpose)) holderAttestationPolicy.requireAccredited(i);
         String token="key_attestation".equals(purpose)
             ? signer.keyAttestation(installationKey,seconds)
             : signer.walletAttestation(installationKey,seconds);

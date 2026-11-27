@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
@@ -14,8 +15,9 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
-/** Active only when infrastructure has provisioned the institutional Cognito User Pool. */
+/** Institutional Cognito-only JWT verifier; NEVER relax issuer constraints for laboratory. */
 @Configuration(proxyBeanMethods = false)
+@Profile("!mtc-lab-v076")
 @ConditionalOnProperty(prefix = "wallet.cognito", name = "enabled", havingValue = "true")
 public class CognitoJwtConfig {
     @Bean
